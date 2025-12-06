@@ -69,4 +69,11 @@ class TaskController extends Controller
         return response()->json('category attached successfully', 200);
 
     }
+
+    public function getAllTasks()
+    {
+        $tasks = Task::all();
+
+        return response()->json($tasks, 200);
+    }
 }
