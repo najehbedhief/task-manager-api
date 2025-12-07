@@ -76,4 +76,34 @@ class TaskController extends Controller
 
         return response()->json($tasks, 200);
     }
+
+    public function getTasksByPriority()
+    {
+        $tasks = Auth::user()->tasks()->orderByRaw("FIELD(priority, 'low', 'medium', 'high')")->get();
+
+        return response()->json($tasks, 200);
+    }
+
+    public function addToFavorites($taskId)
+    {
+        Task::findOrFail($taskId);
+        Auth::user()->favoriteTasks()->syncWithoutDetaching($taskId);
+
+        return response()->json(['message' => 'Task added to favorites'], 200);
+    }
+
+    public function removeFromFavorites($taskId)
+    {
+        Task::findOrFail($taskId);
+        Auth::user()->favoriteTasks()->detach($taskId);
+
+        return response()->json(['message' => 'Task removed from favorites'], 200);
+    }
+
+    public function getFavoriteTasks()
+    {
+        $tasks = Auth::user()->favoriteTasks()->get();
+
+        return response()->json($tasks, 200);
+    }
 }

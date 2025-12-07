@@ -16,4 +16,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('tasks', TaskController::class);
     Route::post('logout', [UserController::class, 'logout']);
     Route::get('task/all', [TaskController::class, 'getAllTasks'])->middleware('CheckUser');
+    Route::get('task/ordered', [TaskController::class, 'getTasksByPriority']);
+    Route::post('task/{id}/favorite', [TaskController::class, 'addToFavorites']);
+    Route::delete('task/{id}/favorite', [TaskController::class, 'removeFromFavorites']);
+    Route::get('task/favorites', [TaskController::class, 'getFavoriteTasks']);
 });
