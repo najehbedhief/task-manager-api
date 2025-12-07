@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -73,5 +74,20 @@ class UserController extends Controller
         $tasks = User::findOrFail($id)->tasks;
 
         return response()->json($tasks, 200);
+    }
+
+    public function GetUser()
+    {
+        $user_id = Auth::user()->id;
+        $userData = User::with('profile')->findOrFail($user_id);
+
+        return new UserResource($userData);
+    }
+
+    public function GetAllUsersProfile()
+    {
+        $userData = User::with('profile')->get();
+
+        return UserResource::collection($userData);
     }
 }

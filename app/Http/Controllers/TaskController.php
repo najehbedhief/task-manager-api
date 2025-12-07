@@ -4,106 +4,202 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use App\Models\Category;
 use App\Models\Task;
+use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class TaskController extends Controller
 {
     public function index()
     {
-        $tasks = Auth::user()->tasks;
+        try {
+            $tasks = Auth::user()->tasks;
 
-        return response()->json($tasks, 200);
+            return response()->json($tasks, 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 
     public function store(StoreTaskRequest $request)
     {
-        $user_id = Auth::user()->id;
-        $validatedData = $request->validated();
-        $validatedData['user_id'] = $user_id;
-        $task = Task::create($validatedData);
+        try {
+            $user_id = Auth::user()->id;
+            $validatedData = $request->validated();
+            $validatedData['user_id'] = $user_id;
+            $task = Task::create($validatedData);
 
-        return response()->json($task, 201);
+            return response()->json($task, 201);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 
     public function update(UpdateTaskRequest $request, $id)
     {
-        $user_id = Auth::user()->id;
-        $task = Task::findOrFail($id);
-        if ($task->user_id != $user_id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        try {
+            $user_id = Auth::user()->id;
+            $task = Task::findOrFail($id);
+            if ($task->user_id != $user_id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            $task->update($request->validated());
+
+            return response()->json($task, 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Task not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
         }
-
-        $task->update($request->validated());
-
-        return response()->json($task, 200);
     }
 
     public function show($id)
     {
-        $task = Task::find($id);
+        try {
+            $task = Task::find($id);
 
-        return response()->json($task, 200);
+            return response()->json($task, 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Task not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 
     public function destroy($id)
     {
-        $task = Task::findOrFail($id);
-        $task->delete();
+        try {
+            $task = Task::findOrFail($id);
+            $task->delete();
 
-        return response()->json(null, 204);
+            return response()->json('Task Deleted successfully', 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Task not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong while deleting the task'], 500);
+        }
     }
 
     public function getTaskUser($id)
     {
-        $user = Task::findOrFail($id)->user;
+        try {
+            $user = Task::findOrFail($id)->user;
 
-        return response()->json($user, 200);
+            return response()->json($user, 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Task not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 
     public function addCategoriesToTask(Request $request, $taskId)
     {
-        $task = Task::findOrFail($taskId);
-        $task->categories->attach($request->category_id);
+        try {
+            $task = Task::findOrFail($taskId);
+            $task->categories()->attach($request->category_id);
 
-        return response()->json('category attached successfully', 200);
+            return response()->json('category attached successfully', 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Task not found'], 404);
+        } catch (QueryException $e) {
+            return response()->json(['error' => 'Category not found or already attached'], 400);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
+
+    }
+
+    public function getTaskCategories($taskId)
+    {
+        try {
+            $categories = Task::findOrFail($taskId)->categories;
+
+            return response()->json($categories, 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Task not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
+    }
+
+    public function getCategorieTasks($categoriyId)
+    {
+        try {
+            $tasks = Category::findOrFail($categoriyId)->tasks;
+
+            return response()->json($tasks, 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Category not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
 
     }
 
     public function getAllTasks()
     {
-        $tasks = Task::all();
+        try {
+            $tasks = Task::all();
 
-        return response()->json($tasks, 200);
+            return response()->json($tasks, 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 
     public function getTasksByPriority()
     {
-        $tasks = Auth::user()->tasks()->orderByRaw("FIELD(priority, 'low', 'medium', 'high')")->get();
+        try {
+            $tasks = Auth::user()->tasks()->orderByRaw("FIELD(priority, 'low', 'medium', 'high')")->get();
 
-        return response()->json($tasks, 200);
+            return response()->json($tasks, 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 
     public function addToFavorites($taskId)
     {
-        Task::findOrFail($taskId);
-        Auth::user()->favoriteTasks()->syncWithoutDetaching($taskId);
+        try {
+            Task::findOrFail($taskId);
+            Auth::user()->favoriteTasks()->syncWithoutDetaching($taskId);
 
-        return response()->json(['message' => 'Task added to favorites'], 200);
+            return response()->json(['message' => 'Task added to favorites'], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Task not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 
     public function removeFromFavorites($taskId)
     {
-        Task::findOrFail($taskId);
-        Auth::user()->favoriteTasks()->detach($taskId);
+        try {
+            Task::findOrFail($taskId);
+            Auth::user()->favoriteTasks()->detach($taskId);
 
-        return response()->json(['message' => 'Task removed from favorites'], 200);
+            return response()->json(['message' => 'Task removed from favorites'], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Task not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 
     public function getFavoriteTasks()
     {
-        $tasks = Auth::user()->favoriteTasks()->get();
+        try {
+            $tasks = Auth::user()->favoriteTasks()->get();
 
-        return response()->json($tasks, 200);
+            return response()->json($tasks, 200);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Something went wrong'], 500);
+        }
     }
 }
